@@ -2,24 +2,28 @@ import requests
 import os
 from datetime import datetime
 
-# Buscamos correctamente los secretos por el nombre de la etiqueta guardada en Settings
+# Buscamos los secretos seguros de tus Settings en GitHub
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def obtener_promedio_p2p(trade_type):
-    # Usamos una API financiera abierta y ultra estable para el mercado brasileño
+    # API financiera abierta y ultra estable para el mercado de Brasil (libre de bloqueos)
     url = "https://economia.awesomeapi.com.br/json/last/USDT-BRL"
+    
     try:
         response = requests.get(url, timeout=10)
         data = response.json()
+        
         if "USDTBRL" in data:
             precio_spot = float(data["USDTBRL"]["bid"])
             
-            # Simulamos el comportamiento real y exacto del P2P en Brasil con Pix
+            # Aplicamos el spread promedio histórico del P2P brasileño con Pix
             if trade_type == "SELL":
-                return precio_spot * 1.005  # Compra P2P (~0.5% arriba del spot)
+                # P2P COMPRA: Los comerciantes venden un poco más caro que el spot (~0.5%)
+                return precio_spot * 1.005  
             else:
-                return precio_spot * 0.997  # Venta P2P (~0.3% abajo del spot)
+                # P2P VENTA: Te compran el USDT un poco más barato (~0.3%)
+                return precio_spot * 0.997  
         return None
     except Exception as e:
         print(f"Error consultando API alternativa: {e}")
@@ -29,11 +33,11 @@ def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje, "parse_mode": "Markdown"}
     try:
-        requests.post(url, json=payload)
+        requests.post(url, json=payload, timeout=10)
     except Exception as e:
         print(f"Error enviando a Telegram: {e}")
 
-# Ejecución principal
+# --- Ejecución Principal ---
 promedio_compra = obtener_promedio_p2p("SELL")
 promedio_venta = obtener_promedio_p2p("BUY")
 
@@ -44,8 +48,8 @@ if promedio_compra and promedio_venta:
     ahora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     
     reporte = (
-        "📊 *REPORTE REAL BINANCE P2P*\n"
-        "🔹 *Filtro:* Pix / Verificados\n\n"
+        "📊 *REPORTE ESTIMADO P2P (Brasil)*\n"
+        "🔹 *Filtro:* Pix / Basado en Spot de alta fidelidad\n\n"
         f"🟢 *Promedio Compra:* R$ {promedio_compra:.2f}\n"
         f"🔴 *Promedio Venta:* R$ {promedio_venta:.2f}\n\n"
         f"↕️ *Spread:* R$ {spread:.3f} ({spread_porcentaje:.2f}%)\n\n"
@@ -53,4 +57,4 @@ if promedio_compra and promedio_venta:
     )
     enviar_telegram(reporte)
 else:
-    print("No se pudieron obtener precios reales.")
+    print("Error al procesar las cotizaciones de la API.")

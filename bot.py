@@ -2,9 +2,9 @@ import requests
 import os
 from datetime import datetime
 
-# Tomamos las credenciales ocultas desde GitHub Secrets por seguridad
-TELEGRAM_TOKEN = os.environ.get("7719423338:AAG48XCWoUwkUcZ540bjoYuWKqifBaS107M")
-TELEGRAM_CHAT_ID = os.environ.get("2114557680")
+# Buscamos correctamente los secretos por el nombre de la etiqueta guardada en Settings
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def obtener_promedio_p2p(trade_type):
     url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/p2p/search"
@@ -37,7 +37,10 @@ def obtener_promedio_p2p(trade_type):
 def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje, "parse_mode": "Markdown"}
-    requests.post(url, json=payload)
+    try:
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(f"Error enviando a Telegram: {e}")
 
 # Ejecución principal
 promedio_compra = obtener_promedio_p2p("SELL")
@@ -59,4 +62,4 @@ if promedio_compra and promedio_venta:
     )
     enviar_telegram(reporte)
 else:
-    enviar_telegram("⚠️ Error: Binance bloqueó la conexión del servidor.")
+    print("No se pudieron obtener precios reales.")
